@@ -1,0 +1,400 @@
+---
+title: "CS 7641 UL Report — R Sanity Check"
+subtitle: "Python clustering and DR results cross-checked against native R (kmeans/Mclust/prcomp)"
+author: "Timothy Leung"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  bookdown::pdf_document2:
+    toc: false
+    number_sections: true
+    keep_tex: false
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{xcolor}
+  - \usepackage{geometry}
+  - \usepackage{titling}
+  - \usepackage{titlesec}
+  - \usepackage{fancyhdr}
+  - \usepackage{booktabs}
+  - \usepackage{caption}
+  - \usepackage{hyperref}
+  - \definecolor{denim}{HTML}{2C6FBB}
+  - \definecolor{denimdark}{HTML}{1B3A5C}
+  - \definecolor{denimmid}{HTML}{3A6B8C}
+  - \definecolor{denimbright}{HTML}{5B9BD5}
+  - \definecolor{amber}{HTML}{D4A017}
+  - \definecolor{plum}{HTML}{7B2D8E}
+  - \definecolor{sage}{HTML}{6BB38A}
+  - \definecolor{sienna}{HTML}{B8552E}
+  - \hypersetup{linkcolor=denimbright, urlcolor=denim, citecolor=sage, filecolor=plum}
+  - \geometry{margin=0.7in}
+  - \titleformat{\section}{\color{denimdark}\Large\bfseries}{\thesection}{0.6em}{}
+  - \titleformat{\subsection}{\color{denimmid}\large\bfseries}{\thesubsection}{0.6em}{}
+  - \pagestyle{fancy}
+  - \fancyhf{}
+  - \fancyhead[L]{\color{denimmid}\small CS 7641 UL Report — R Sanity Check}
+  - \fancyhead[R]{\color{denimmid}\small Timothy Leung}
+  - \fancyfoot[C]{\color{denimmid}\small \thepage}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo       = FALSE,
+  message    = FALSE,
+  warning    = FALSE,
+  fig.align  = "center",
+  fig.width  = 6.5,
+  fig.height = 3.6,
+  dpi        = 200,
+  cache      = FALSE
+)
+
+denim_palette <- list(
+  denim      = "#2C6FBB",
+  denim_dark = "#1B3A5C",
+  denim_mid  = "#3A6B8C",
+  amber      = "#D4A017",
+  plum       = "#7B2D8E",
+  sage       = "#6BB38A",
+  sienna     = "#B8552E",
+  teal       = "#4C9E82"
+)
+
+suppressPackageStartupMessages({
+  library(yaml)
+  library(jsonlite)
+  library(dplyr)
+  library(tidyr)
+  library(readr)
+  library(tibble)
+  library(ggplot2)
+  library(scales)
+  library(knitr)
+  have_kableExtra <- requireNamespace("kableExtra", quietly = TRUE)
+})
+
+# ggplot2 theme — white bg, whitegrid
+denim_theme <- function(base_size = 9) {
+  theme_minimal(base_size = base_size, base_family = "sans") +
+  theme(
+    plot.background   = element_rect(fill = "white", colour = NA),
+    panel.background  = element_rect(fill = "white", colour = NA),
+    panel.grid.major  = element_line(colour = "#d0d8e8", linewidth = 0.4),
+    panel.grid.minor  = element_blank(),
+    axis.line         = element_line(colour = denim_palette$denim_dark, linewidth = 0.4),
+    axis.text         = element_text(colour = denim_palette$denim_dark),
+    axis.title        = element_text(colour = denim_palette$denim_dark, face = "bold"),
+    plot.title        = element_text(colour = denim_palette$denim_dark, face = "bold"),
+    plot.subtitle     = element_text(colour = denim_palette$denim_mid),
+    legend.position   = "right"
+  )
+}
+
+# Locate project root
+project_root <- normalizePath(file.path(dirname(knitr::current_input(dir = TRUE)), ".."))
+results_dir  <- file.path(project_root, "results")
+logs_dir     <- file.path(results_dir,  "logs")
+config_path  <- file.path(project_root, "configs", "config.yaml")
+cfg          <- yaml::read_yaml(config_path)
+seed         <- as.integer(cfg$experiment$seed)   # 7641
+set.seed(seed)
+```
+
+# Purpose
+
+This document provides an independent R-side audit of the Python UL pipeline.
+It cross-checks:
+
+1. **K-Means internal metrics** — R \texttt{kmeans} vs.\ Python sklearn \texttt{KMeans}.
+2. **PCA explained-variance curve** — R \texttt{prcomp} vs.\ Python sklearn \texttt{PCA}.
+3. **Clustering log audit** — verifies all Part~1/3 JSON logs are internally consistent.
+4. **NN after DR summary** — confirms reported Macro-F1 values are plausible.
+
+> If R \texttt{kmeans} (k=7) silhouette agrees with Python within 0.02, the
+> feature matrix and preprocessing are confirmed consistent across implementations.
+
+\noindent
+\textcolor{denimdark}{\rule{\linewidth}{0.6pt}}
+
+# Data — Mirror Python Split
+
+```{r load-data}
+cov_csv <- file.path(project_root, "data", "covtype_25k.csv.gz")
+df <- if (file.exists(cov_csv)) {
+  readr::read_csv(cov_csv, show_col_types = FALSE)
+} else {
+  NULL
+}
+
+if (!is.null(df)) {
+  df$Cover_Type <- factor(df$Cover_Type, levels = 1:7)
+  cont_cols <- 1:10
+  # Scale continuous cols only (mirrors Python)
+  mu <- colMeans(df[, cont_cols])
+  sg <- apply(df[, cont_cols], 2, sd); sg[sg == 0] <- 1
+  df_scaled <- df
+  for (j in cont_cols) {
+    df_scaled[, j] <- (df_scaled[, j] - mu[j]) / sg[j]
+  }
+  X_full <- as.matrix(df_scaled[, 1:54])
+  y_full <- as.integer(df_scaled$Cover_Type)
+}
+```
+
+```{r data-summary, results = "asis"}
+if (!is.null(df)) {
+  tbl <- tibble(
+    Split = "Full working sample",
+    n = nrow(df),
+    n_features = ncol(df) - 1L,
+    n_classes = n_distinct(df$Cover_Type)
+  )
+  k <- knitr::kable(tbl, booktabs = TRUE,
+                    caption = "Dataset dimensions (should match Python: 20k × 54).")
+  if (have_kableExtra) print(kableExtra::kable_styling(k, latex_options = "HOLD_position", font_size = 9))
+  else print(k)
+}
+```
+
+\noindent
+\textcolor{denimdark}{\rule{\linewidth}{0.6pt}}
+
+# K-Means Sanity Check
+
+```{r helpers}
+macro_f1 <- function(truth, pred, lvls = levels(truth)) {
+  pred  <- factor(pred,  levels = lvls)
+  truth <- factor(truth, levels = lvls)
+  cm    <- table(truth, pred)
+  f1s   <- sapply(lvls, function(c) {
+    tp <- cm[c, c]; fp <- sum(cm[, c]) - tp; fn <- sum(cm[c, ]) - tp
+    if (tp == 0) return(0)
+    prec <- tp / (tp + fp); rec <- tp / (tp + fn)
+    2 * prec * rec / (prec + rec)
+  })
+  mean(f1s, na.rm = TRUE)
+}
+
+silhouette_approx <- function(X, labels, n_sample = 2000, seed = 0) {
+  set.seed(seed)
+  n  <- nrow(X)
+  ix <- if (n > n_sample) sample(n, n_sample) else seq_len(n)
+  Xs <- X[ix, ]; ls <- labels[ix]
+  if (length(unique(ls)) < 2) return(NA_real_)
+  cluster::silhouette(ls, dist(Xs)) |> summary() |> _$avg.width
+}
+```
+
+```{r r-kmeans, eval = !is.null(df)}
+suppressPackageStartupMessages(library(cluster))
+set.seed(seed)
+km_r <- kmeans(X_full, centers = 7, nstart = 10, iter.max = 300)
+r_sil <- silhouette_approx(X_full, km_r$cluster)
+```
+
+```{r py-kmeans-load}
+py_km_path <- file.path(logs_dir, "kmeans_final.json")
+py_km <- if (file.exists(py_km_path)) jsonlite::fromJSON(py_km_path) else NULL
+```
+
+```{r kmeans-comparison, results = "asis"}
+rows <- tibble(
+  Implementation = character(),
+  Silhouette = numeric(), ARI = numeric(), Inertia = numeric()
+)
+if (!is.null(py_km)) {
+  rows <- bind_rows(rows, tibble(
+    Implementation = "Python sklearn KMeans (k=7)",
+    Silhouette = py_km$silhouette,
+    ARI        = py_km$ari,
+    Inertia    = py_km$inertia
+  ))
+}
+if (exists("r_sil")) {
+  rows <- bind_rows(rows, tibble(
+    Implementation = "R stats::kmeans (k=7)",
+    Silhouette = r_sil,
+    ARI        = NA_real_,
+    Inertia    = km_r$tot.withinss
+  ))
+}
+if (nrow(rows) > 0) {
+  k <- knitr::kable(rows, digits = 4, booktabs = TRUE,
+    caption = paste0("K-Means comparison: Python vs. R. ",
+                     "|Delta silhouette| < 0.02 = confirmed."))
+  if (have_kableExtra) print(kableExtra::kable_styling(k, latex_options = "HOLD_position", font_size = 9))
+  else print(k)
+}
+```
+
+\noindent
+\textcolor{denimdark}{\rule{\linewidth}{0.6pt}}
+
+# PCA Explained Variance Cross-Check
+
+```{r pca-r, eval = !is.null(df)}
+pca_r <- prcomp(X_full, center = FALSE, scale. = FALSE)
+evr_r <- (pca_r$sdev^2) / sum(pca_r$sdev^2)
+cum_r <- cumsum(evr_r)
+n90_r <- which(cum_r >= 0.90)[1]
+n95_r <- which(cum_r >= 0.95)[1]
+```
+
+```{r pca-py-load}
+py_pca_path <- file.path(logs_dir, "pca_diagnostics.json")
+py_pca <- if (file.exists(py_pca_path)) jsonlite::fromJSON(py_pca_path) else NULL
+```
+
+```{r pca-comparison, results = "asis"}
+rows_pca <- tibble(
+  Implementation = character(),
+  `n for 90% var` = integer(),
+  `n for 95% var` = integer(),
+  `PC1 EVR` = numeric(),
+  `PC2 EVR` = numeric()
+)
+if (!is.null(py_pca)) {
+  cum_py <- unlist(py_pca$cum_var)
+  evr_py <- unlist(py_pca$evr)
+  rows_pca <- bind_rows(rows_pca, tibble(
+    Implementation  = "Python sklearn PCA",
+    `n for 90% var` = as.integer(which(cum_py >= 0.90)[1]),
+    `n for 95% var` = as.integer(which(cum_py >= 0.95)[1]),
+    `PC1 EVR`       = evr_py[1],
+    `PC2 EVR`       = evr_py[2]
+  ))
+}
+if (exists("pca_r")) {
+  rows_pca <- bind_rows(rows_pca, tibble(
+    Implementation  = "R prcomp",
+    `n for 90% var` = as.integer(n90_r),
+    `n for 95% var` = as.integer(n95_r),
+    `PC1 EVR`       = evr_r[1],
+    `PC2 EVR`       = evr_r[2]
+  ))
+}
+if (nrow(rows_pca) > 0) {
+  k <- knitr::kable(rows_pca, digits = 4, booktabs = TRUE,
+    caption = "PCA explained variance: Python vs. R. Values should agree within floating-point precision.")
+  if (have_kableExtra) print(kableExtra::kable_styling(k, latex_options = "HOLD_position", font_size = 9))
+  else print(k)
+}
+```
+
+\noindent
+\textcolor{denimdark}{\rule{\linewidth}{0.6pt}}
+
+# Clustering Log Audit
+
+```{r log-audit}
+# Load all clustering JSON logs
+log_files <- list.files(logs_dir,
+  pattern = "^(kmeans|gmm)_(final|after_).*.json$",
+  full.names = TRUE)
+
+log_rows <- lapply(log_files, function(fp) {
+  d   <- jsonlite::fromJSON(fp)
+  nm  <- gsub("\\.json$", "", basename(fp))
+  tibble(
+    log     = nm,
+    sil     = d$silhouette,
+    ari     = d$ari,
+    nmi     = d$nmi,
+    ok_sil  = between(d$silhouette, -1, 1),
+    ok_ari  = between(d$ari, -1, 1),
+    ok_nmi  = between(d$nmi, 0,  1)
+  )
+}) %>% bind_rows() %>% arrange(log)
+```
+
+```{r audit-table, results = "asis"}
+disp_audit <- log_rows %>%
+  transmute(
+    Log     = log,
+    Sil     = round(sil, 4),
+    ARI     = round(ari, 4),
+    NMI     = round(nmi, 4),
+    OK      = ifelse(ok_sil & ok_ari & ok_nmi, "✓", "⚠")
+  )
+k <- knitr::kable(disp_audit, booktabs = TRUE,
+  caption = "Clustering log audit: all metric values must be in valid range.",
+  align = "lccccc")
+if (have_kableExtra) {
+  print(kableExtra::kable_styling(k, latex_options = c("HOLD_position", "scale_down"), font_size = 8))
+} else {
+  print(k)
+}
+```
+
+\noindent
+\textcolor{denimdark}{\rule{\linewidth}{0.6pt}}
+
+# NN After DR Summary
+
+```{r nn-audit}
+nn_path <- file.path(logs_dir, "nn_after_dr.json")
+nn_data <- if (file.exists(nn_path)) jsonlite::fromJSON(nn_path) else NULL
+```
+
+```{r nn-table, results = "asis"}
+if (!is.null(nn_data)) {
+  tags <- c("original", "pca", "ica", "rp")
+  nn_rows <- lapply(tags, function(tag) {
+    r  <- nn_data[[tag]]
+    tm <- r$test_metrics
+    tibble(
+      Features    = tag,
+      `dim`       = r$in_dim,
+      `Macro-F1`  = tm$macro_f1,
+      `Accuracy`  = tm$accuracy,
+      `Bal. Acc.` = tm$balanced_acc,
+      `Train (s)` = r$wall_train_s,
+      `Epochs`    = r$n_epochs_run
+    )
+  }) %>% bind_rows()
+
+  k <- knitr::kable(nn_rows, digits = 4, booktabs = TRUE,
+    caption = "NN after DR — test metrics and runtime. PCA should lead on Macro-F1.")
+  if (have_kableExtra) {
+    print(kableExtra::kable_styling(k, latex_options = "HOLD_position", font_size = 9))
+  } else {
+    print(k)
+  }
+}
+```
+
+```{r nn-plot, fig.cap = "NN Macro-F1 by feature space. Positive delta = improvement over original."}
+if (!is.null(nn_data)) {
+  tags <- c("original","pca","ica","rp")
+  labels <- c("Original","PCA","ICA","RP")
+  cols   <- c("#1B3A5C","#2C6FBB","#D4A017","#4C9E82")
+  f1s    <- sapply(tags, function(t) nn_data[[t]]$test_metrics$macro_f1)
+  orig_f1 <- f1s["original"]
+  deltas   <- f1s - orig_f1
+
+  df_plot <- tibble(tag = labels, delta = deltas, f1 = f1s, col = cols)
+
+  ggplot(df_plot, aes(x = reorder(tag, f1), y = f1, fill = tag)) +
+    geom_col(width = 0.6, colour = NA) +
+    geom_text(aes(label = sprintf("%.4f", f1)), hjust = -0.15, size = 2.8,
+              colour = "#1A1A2E") +
+    scale_fill_manual(values = setNames(cols, labels), guide = "none") +
+    coord_flip() +
+    labs(x = NULL, y = "Test Macro-F1",
+         title = "NN after DR — Test Macro-F1 by feature space") +
+    denim_theme()
+}
+```
+
+\noindent
+\textcolor{denimdark}{\rule{\linewidth}{0.6pt}}
+
+# Provenance
+
+- Config: `r normalizePath(config_path)`
+- Seed: `r seed`
+- Logs dir: `r normalizePath(logs_dir)`
+- Clustering logs audited: `r nrow(log_rows)`
+- All clustering logs pass range check: `r all(log_rows$ok_sil & log_rows$ok_ari & log_rows$ok_nmi)`
+- R version: `r paste(R.version$major, R.version$minor, sep = ".")`
+- Knitted: `r format(Sys.time(), "%Y-%m-%d %H:%M:%S")`

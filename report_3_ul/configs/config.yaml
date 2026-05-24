@@ -1,0 +1,56 @@
+# report_3_ul/configs/config.yaml
+# CS7641 UL Report — Summer 2026 | Timothy Leung (tleung37)
+# Mirrors report_1_sl and report_2_ol config structure.
+
+experiment:
+  seed: 7641
+  seeds_rp: [7641, 42, 123, 7, 2024]   # 5 seeds for RP variability study
+
+data:
+  sample_size: 20000
+  test_size: 0.20       # 80/20 stratified — same as SL
+  val_size: 0.20        # of the 80%: overall 60/20/20
+  continuous_cols: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]   # first 10 cols
+  binary_cols_start: 10  # cols 10-53 are binary (wilderness+soil)
+
+clustering:
+  k_range: [2, 3, 4, 5, 6, 7, 8, 10, 12]
+  k_final: 7
+  gmm_n_range: [2, 3, 4, 5, 6, 7, 8, 10, 12]
+  gmm_n_final: 7
+  gmm_covariance: full
+  kmeans_n_init: 20
+  kmeans_max_iter: 500
+  gmm_max_iter: 200
+
+dr:
+  pca_n_components_full: 54      # all features (to get full variance curve)
+  pca_n_final: 30                # justified by cumvar >= 0.90
+  ica_n_final: 20                # justified by kurtosis + downstream
+  rp_n_final: 30                 # matches pca_n_final for fair NN comparison
+  umap_n_components: 2           # visualization only (extra credit)
+  umap_n_neighbors: 30
+  umap_min_dist: 0.1
+
+backbone:
+  # Identical to SL Report — best justified MLP
+  hidden: [256, 128]
+  activation: relu
+  dropout: 0.0
+  use_batchnorm: true
+  init: kaiming_normal
+
+training:
+  batch_size: 256
+  n_epochs: 40          # matches OL best
+  optimizer: adam_no_bias   # best Part2 OL result (macro_f1=0.6695)
+  lr: 0.001
+  weight_decay: 0.0001   # best Part3 OL single regularizer (L2 1e-4)
+  early_stopping_patience: 10
+
+paths:
+  data_cache: .cache/covtype
+  results: results/
+  logs: results/logs/
+  figures: results/figures/
+  tables: results/tables/

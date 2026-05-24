@@ -1,0 +1,81 @@
+23:49:37  === LOADING DATA ===
+23:49:38  Loaded covtype from cache: /home/user/workspace/report_3_ul/src/../data/covtype_25k.csv.gz
+23:49:38  Split sizes — train:12000 val:4000 test:4000
+23:49:38  Loaded covtype from cache: /home/user/workspace/report_3_ul/src/../data/covtype_25k.csv.gz
+23:49:38  Split sizes — train:12000 val:4000 test:4000
+23:49:38  Shapes — train:(12000, 54) val:(4000, 54) test:(4000, 54) full:(20000, 54)
+23:49:38    JSON → /home/user/workspace/report_3_ul/results/logs/eda_summary.json
+23:49:38  === PART 1: CLUSTERING (ORIGINAL) ===
+23:49:38  K-Means sweep...
+23:49:38    KMeans k=2  sil=0.1904  ari=0.0054
+23:49:39    KMeans k=3  sil=0.1475  ari=0.0262
+23:49:40    KMeans k=4  sil=0.1492  ari=0.0295
+23:49:41    KMeans k=5  sil=0.1350  ari=0.0144
+23:49:43    KMeans k=6  sil=0.1383  ari=0.0272
+23:49:44    KMeans k=7  sil=0.1306  ari=0.0226
+23:49:46    KMeans k=8  sil=0.1352  ari=0.0203
+23:49:50    KMeans k=10  sil=0.1285  ari=0.0225
+23:49:54    KMeans k=12  sil=0.1216  ari=0.0271
+23:49:54    JSON → /home/user/workspace/report_3_ul/results/logs/kmeans_sweep.json
+23:49:54  K-Means final (k=7)...
+23:49:56    JSON → /home/user/workspace/report_3_ul/results/logs/kmeans_final.json
+23:49:56  GMM sweep...
+23:50:01    GMM n=2  bic=-5292139.9  ari=0.0359
+23:50:14    GMM n=3  bic=-6403527.7  ari=0.1185
+23:50:27    GMM n=4  bic=-7067135.4  ari=0.0869
+23:50:43    GMM n=5  bic=-7854354.8  ari=0.0743
+23:51:03    GMM n=6  bic=-8109131.9  ari=0.0424
+23:51:34    GMM n=7  bic=-8370757.1  ari=0.0524
+23:52:16    GMM n=8  bic=-8659893.2  ari=0.0436
+23:52:50    GMM n=10  bic=-8780490.7  ari=0.0765
+23:53:46    GMM n=12  bic=-8851687.7  ari=0.0834
+23:53:46    JSON → /home/user/workspace/report_3_ul/results/logs/gmm_sweep.json
+23:53:46  GMM final (n=7)...
+23:54:14    JSON → /home/user/workspace/report_3_ul/results/logs/gmm_final.json
+23:54:15  === PART 2: DIMENSIONALITY REDUCTION ===
+23:54:15  PCA full diagnostic...
+23:54:15  PCA: n90%=10  n95%=14  top-1=0.226  eff_rank~7.4
+23:54:16    JSON → /home/user/workspace/report_3_ul/results/logs/pca_diagnostics.json
+23:54:16  ICA n=20...
+23:54:16  ICA n=20  converged  wall=0.4s  mean_kurtosis=6.05
+23:54:18    JSON → /home/user/workspace/report_3_ul/results/logs/ica_diagnostics.json
+23:54:18  RP distance preservation (n=30, seeds=[7641, 42, 123, 7, 2024])...
+23:54:18    RP seed=7641  ratio_mean=1.002  ±0.128
+23:54:18    RP seed=42  ratio_mean=1.003  ±0.124
+23:54:18    RP seed=123  ratio_mean=0.992  ±0.119
+23:54:18    RP seed=7  ratio_mean=1.001  ±0.100
+23:54:18    RP seed=2024  ratio_mean=0.993  ±0.134
+23:54:18    JSON → /home/user/workspace/report_3_ul/results/logs/rp_diagnostics.json
+23:54:19  UMAP (extra credit, visualization only)...
+23:55:09  UMAP n=2  wall=37.2s
+23:55:09    JSON → /home/user/workspace/report_3_ul/results/logs/umap_diagnostics.json
+23:55:10  === PART 3: CLUSTERING AFTER DR ===
+23:55:10    K-Means after PCA...
+23:55:11    JSON → /home/user/workspace/report_3_ul/results/logs/kmeans_after_pca.json
+23:55:11    GMM after PCA...
+23:55:30    JSON → /home/user/workspace/report_3_ul/results/logs/gmm_after_pca.json
+23:55:30    K-Means after ICA...
+23:55:30    JSON → /home/user/workspace/report_3_ul/results/logs/kmeans_after_ica.json
+23:55:30    GMM after ICA...
+23:55:35    JSON → /home/user/workspace/report_3_ul/results/logs/gmm_after_ica.json
+23:55:35    K-Means after RP...
+23:55:37    JSON → /home/user/workspace/report_3_ul/results/logs/kmeans_after_rp.json
+23:55:37    GMM after RP...
+23:55:57    JSON → /home/user/workspace/report_3_ul/results/logs/gmm_after_rp.json
+23:55:57  === PART 4: NN AFTER DR ===
+23:55:57  [NN] Original features
+23:56:04    [original] early-stop ep=29
+23:56:04    [original] acc=0.7940  macro_f1=0.6803  bal=0.6508  wall_train=5.6s
+23:56:04  [NN] PCA n=30
+23:56:11    [pca] early-stop ep=36
+23:56:11    [pca] acc=0.8000  macro_f1=0.6951  bal=0.6642  wall_train=7.0s
+23:56:11  [NN] ICA n=20
+23:56:19    [ica] early-stop ep=38
+23:56:19    [ica] acc=0.7875  macro_f1=0.6785  bal=0.6359  wall_train=7.2s
+23:56:19  [NN] RP n=30
+23:56:26    [rp] early-stop ep=35
+23:56:26    [rp] acc=0.7883  macro_f1=0.6670  bal=0.6339  wall_train=6.9s
+23:56:26    JSON → /home/user/workspace/report_3_ul/results/logs/nn_after_dr.json
+23:56:27  Saved nn_dr_summary.csv
+23:56:27  Saved clustering_summary.csv
+23:56:27  === PIPELINE COMPLETE ===
