@@ -92,7 +92,7 @@ cd ../rsanity && Rscript -e 'bookdown::render_book("sanity_check_OL.Rmd")'
 | Part 1 | RHC (best RO) | 0.563 | — | 0.594 | 0.530 |
 | Part 2 | Adam | 0.489 | 0.787 | 0.657 | — |
 | Part 2 | AdamW | 0.495 | 0.775 | **0.671** | — |
-| Part 3 | L2 $\lambda$=1e-4 (best single) | 0.497 | 0.779 | 0.653 | — |
+| Part 3 | L2 λ=1e-4 (best single) | 0.497 | 0.779 | 0.653 | — |
 | Part 3 | Best combo | 0.511 | 0.760 | 0.653 | **0.588** |
 
 R sanity check confirms Python pipeline: `nnet` (BFGS) vs. SL SGD baseline within the expected library-difference band; all 34 Part 2/3 JSON logs pass internal consistency checks (Macro-F1 ∈ [0,1], seed IQR < 0.015).

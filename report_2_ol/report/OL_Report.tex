@@ -13,7 +13,6 @@
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
-\usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{tabularx}
@@ -24,6 +23,7 @@
 \usepackage{listings}
 \usepackage{enumitem}
 \usepackage{fancyhdr}
+\usepackage[table]{xcolor}
 
 % ----------------------------- denim palette (copied from SL_Report.tex) -
 \definecolor{denim}{HTML}{2C6FBB}
@@ -213,6 +213,8 @@ SL Report values (columns 3 and 4 must agree to 2 d.p.\ for OL comparability).
 Minority classes 4--6 retain ${\approx}5\%$ combined share, so per-class
 Macro-F1 comparisons remain statistically non-degenerate.}
 \label{tab:eda_class}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{Xrrr}
 \toprule
 \textcolor{denimdark}{\textbf{Class}} & \textbf{$n$ (OL)} & \textbf{OL \%} & \textbf{SL \%} \\
@@ -276,13 +278,19 @@ Progress reported by FEs, not generations, per the spec's fairness requirement.
 \subsection{Results}\label{sec:p1:results}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_ro_progress.pdf}
+\includegraphics[width=\linewidth]{./results/figures/fig_ro_progress.pdf}
 \caption{Part~1 --- best-so-far validation loss vs.\ function evaluations
 (left) and wall-clock time (right) for RHC, SA, and GA.
-All three plateau within 300--400 FEs: RHC finds the best local minimum
-quickly then stalls; SA's early temperature allows mild exploration that
-catches a marginally better basin by FE~800; GA's population overhead
-burns FEs faster without proportional quality gain.
+RHC (solid) descends steeply in the first 200 FEs then plateaus at the local
+optimum it cannot escape without restarts; SA (dashed flat) begins at its best
+value (0.5689) and never improves --- with $T_0{=}1.0$, $T_{\text{decay}}{=}0.995$,
+and $\Delta\theta{\sim}\mathcal{N}(0,0.01^2)$, the temperature collapses within
+$\sim$150 steps and all Metropolis proposals are rejected,
+freezing the chain at the initial point; GA (dotted) descends gradually across
+generations but burns ${\approx}3\times$ the FEs of RHC for inferior final loss.
+SA's failure to explore is itself a result: it shows that geometric cooling
+at this rate is too aggressive for the 1{,}159-parameter landscape after
+gradient descent has already found a well-conditioned basin.
 This is the RO-limited-gains signature H3 predicts.}
 \label{fig:ro_progress}\backto{sec:p1:results}
 \end{figure}
@@ -306,6 +314,8 @@ All three algorithms improve validation loss slightly; none breaks
 above the SL baseline on Macro-F1 by a margin larger than fold variance.
 FE budgets are comparable within a factor of 2.}
 \label{tab:ro_summary}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{Xcccc}
 \toprule
 \textcolor{denimdark}{\textbf{Method}} &
@@ -352,11 +362,16 @@ initial validation loss, computed from training evidence only, never from test).
 \subsection{Optimizer trajectories}\label{sec:p2:traj}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_optimizer_trajectories.pdf}
+\includegraphics[width=\linewidth]{./results/figures/fig_optimizer_trajectories.pdf}
 \caption{Part~2 --- validation loss vs.\ GEs (left) and wall-clock time
 (right), all seven variants, seed$=42$.
-Adam-family methods cross the $\ell$ threshold in roughly half the GEs of
-plain SGD (no momentum), consistent with H1.
+The dotted line marks $\ell_{\text{vis}}{=}0.671$, plotted as $90\%$ of
+Adam's \emph{initial} validation loss --- a visual reference showing where
+all methods have meaningfully departed from their starting point.
+This is distinct from the $\ell{=}0.539$ threshold (90\% of SGD-no-mom's
+initial loss) used in Table~III's GEs-to-$\ell$ column for speed comparisons.
+Adam-family methods cross $\ell_{\text{vis}}$ within the first 50--100 GEs;
+SGD-no-momentum does not cross it until ${\approx}1{,}300$ GEs, confirming H1.
 The Adam (no bias-correction) curve sits above standard Adam for the first
 10 epochs then converges to the same basin, confirming that bias correction
 primarily matters early \cite{kingma2014adam}.
@@ -380,6 +395,8 @@ optimization speed \cite{loshchilov2019adamw}.
 GEs-to-$\ell$ = gradient evaluations until validation loss crosses $\ell{=}0.539$.
 Bold = best per column.}
 \label{tab:p2_results}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{Xcccc}
 \toprule
 \textcolor{denimdark}{\textbf{Optimizer}} &
@@ -400,7 +417,7 @@ Adam ($\beta_1{=}0$) & $0.494$ & $0.666$ & $470$ & $3{,}760$ \\
 \subsection{Sensitivity heatmap and seed stability}\label{sec:p2:heatmap}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_sensitivity_heatmap.pdf}
+\includegraphics[width=\linewidth]{./results/figures/fig_sensitivity_heatmap.pdf}
 \caption{Adam $(\alpha,\beta_1)$ sensitivity heatmap (30-epoch coarse grid;
 lower = better validation loss).
 A broad flat region at lr$\in[10^{-3},5\times10^{-3}]$ and $\beta_1\in[0.8,0.95]$
@@ -410,7 +427,7 @@ diverges (val loss $>0.66$) showing the learning-rate floor.}
 \end{figure}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_seed_stability.pdf}
+\includegraphics[width=\linewidth]{./results/figures/fig_seed_stability.pdf}
 \caption{Median $\pm$ IQR across three seeds per optimizer.
 Adam-family variants have tighter bands than SGD variants, the stability
 advantage the SL Report attributed to adaptive scaling
@@ -449,7 +466,7 @@ regularizer, and best regularization combination.
 \subsection{Results}\label{sec:p3:results}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_regularization.pdf}
+\includegraphics[width=\linewidth]{./results/figures/fig_regularization.pdf}
 \caption{Part~3 --- validation-loss trajectories (left) and final test Macro-F1
 median $\pm$ IQR across three seeds (right).
 Dropout ($p{=}0.2$) and early stopping show the clearest Macro-F1 improvements.
@@ -461,7 +478,7 @@ that calibration and discrete class decisions are separable outcomes
 \end{figure}
 
 \begin{figure}[t]\centering
-\includegraphics[width=0.9\linewidth]{../results/figures/fig_train_val_gap.pdf}
+\includegraphics[width=0.9\linewidth]{./results/figures/fig_train_val_gap.pdf}
 \caption{Train--validation loss gap at the budget end.
 Early stopping and dropout narrow the gap most; label smoothing inflates
 the raw loss gap because the CE loss is computed on smoothed targets during
@@ -521,6 +538,8 @@ final two layers, $\leq10\%$ of the Part~1 budget
 best combo Macro-F1); the integrated recipe is evaluated on the sealed test
 set on the same held-out 4{,}000-row split.}
 \label{tab:p4}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{Xcccc}
 \toprule
 \textcolor{denimdark}{\textbf{Method}} &
