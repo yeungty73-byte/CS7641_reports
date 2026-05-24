@@ -7,7 +7,7 @@
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
-\usepackage{xcolor}
+\usepackage[table]{xcolor}
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{tabularx}
@@ -199,6 +199,8 @@ Cottonwood/Willow share stays at $\approx$0.47\% (so a 4{,}000-row test split
 still contains $\approx$19 minority examples, enough for per-class precision/recall
 to mean something rather than collapse to 0/1).}
 \label{tab:eda_class}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{Xrrr}
 \toprule
 \textcolor{denimdark}{\textbf{Class}} & \textbf{Full} $n$ & \textbf{Full \%} & \textbf{20k sample \%} \\
@@ -227,6 +229,8 @@ fixed sun-angle), which inflates effective dimensionality without adding
 independent signal --- something the model-complexity curves implicitly
 penalise.}
 \label{tab:eda_continuous}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{Xrrr}
 \toprule
 \textcolor{denimdark}{\textbf{Feature}} & \textbf{min} & \textbf{max} & \textbf{$\mu \pm \sigma$} \\
@@ -269,7 +273,7 @@ behind a function boundary --- is encoded in \texttt{src/data\_loader.py} so no
 learner can accidentally see the test partition during tuning.
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_class_balance.png}
+\includegraphics[width=\linewidth]{./results/figures/fig_class_balance.png}
 \caption{Class distribution. \emph{Left}: full Covertype ($n{\approx}581\text{k}$,
 log-scaled). \emph{Right}: stratified 20k subsample. Stratification preserves
 the long tail (Cottonwood/Willow $\sim$0.47\%) so per-class metrics are not
@@ -348,6 +352,8 @@ is $0.488$ (Lodgepole Pine). The dummy classifier's accuracy sits below this
 because it draws labels with stratified probability rather than always
 predicting the majority, so it spreads probability mass across all classes.}
 \label{tab:leakage}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{lXc}
 \toprule
 \textcolor{denimdark}{\textbf{Probe}} &
@@ -377,6 +383,8 @@ folds) and wall-clock seconds spent searching the grid. The 16k training
 partition is the only data the tuner sees; the 4{,}000-row test set is sealed
 until \secref{sec:results}.}
 \label{tab:tune_summary}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{lXcc}
 \toprule
 \textcolor{denimdark}{\textbf{Learner}} &
@@ -408,7 +416,7 @@ MLPs at $100\%$, well above the $\approx 0.02$ residual gap that a
 momentum-based optimiser would be expected to leave on the same architecture.
 
 \begin{figure*}[t]\centering
-\includegraphics[width=0.98\textwidth]{../results/figures/fig_learning_curves.png}
+\includegraphics[width=0.98\textwidth]{./results/figures/fig_learning_curves.png}
 \caption{Learning curves --- macro-F1 vs.\ \emph{training-set fraction}
 (\textbf{not epochs}, hence the shared x-axis across all five learners; the
 NN per-epoch traces live in \figref{fig:nn_epochs}). The rubric mandates LC
@@ -455,7 +463,7 @@ panel is itself diagnostic --- absence of overfit is not always a virtue;
 sometimes it is evidence the optimiser cannot use the capacity it was given.
 
 \begin{figure*}[t]\centering
-\includegraphics[width=0.98\textwidth]{../results/figures/fig_complexity_curves.png}
+\includegraphics[width=0.98\textwidth]{./results/figures/fig_complexity_curves.png}
 \caption{Model-complexity curves --- train (dashed) vs.\ validation (solid)
 macro-F1 across each learner's complexity axis. Where dashed climbs and
 solid plateaus is the Hawkins\,(2004) \cite{hawkins2004overfit} overfitting
@@ -477,6 +485,8 @@ held-out split touched only once. The train$\to$val gap is the
 generalisation gap; the val$\to$test gap is the optimism-of-CV gap. Both
 are informative; both are visible here in one view.}
 \label{tab:final_scores}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabularx}{\linewidth}{lcccc}
 \toprule
 \textcolor{denimdark}{\textbf{Learner}} &
@@ -492,7 +502,7 @@ MLP-PyTorch   & $0.657$ & $0.587{\pm}.020$ & $0.538$ & $0.756$ \\
 \end{table}
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_confusions_all.png}
+\includegraphics[width=\linewidth]{./results/figures/fig_confusions_all.png}
 \caption{Row-normalised confusion matrices. Diagonal mass = per-class recall;
 off-diagonal mass shows the dominant confusions.}
 \label{fig:confusions}\backto{sec:results}
@@ -520,6 +530,8 @@ RBF bandwidth.
 minority recall problem (classes 4--6) is visible in the recall column and is
 walked through in \secref{sec:discussion}.}
 \label{tab:perclass_svm}
+\centering\small
+\rowcolors{2}{denimrow}{white}
 \begin{tabular}{cccccc}
 \toprule
 \textbf{Class} & \textbf{Name} & \textbf{P} & \textbf{R} & \textbf{F1} & $n$ \\
@@ -546,7 +558,7 @@ saving. kNN, by contrast, fits in milliseconds and pays at prediction time
 work in tuning epochs, not at prediction.
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_runtime.png}
+\includegraphics[width=\linewidth]{./results/figures/fig_runtime.png}
 \caption{Wall-clock seconds per learner (log-scaled): tuning total, final fit
 on 16k, and prediction on the 4{,}000-row test set.}
 \label{fig:runtime}\backto{sec:results:runtime}
@@ -562,10 +574,27 @@ visible as the gap in class-1 and class-2 recall versus the sklearn model
 (see \texttt{results/tables/table\_per\_class\_mlp\_pt.csv}).
 
 \begin{figure}[t]\centering
-\includegraphics[width=\linewidth]{../results/figures/fig_nn_epochs.png}
+\includegraphics[width=\linewidth]{./results/figures/fig_nn_epochs.png}
 \caption{Neural-network loss curves under SGD only ($\mathrm{momentum}{=}0$,
-no Nesterov). \emph{Left}: \texttt{sklearn.MLPClassifier}. \emph{Right}:
-hand-rolled PyTorch MLP with explicit train/val split.}
+no Nesterov). \emph{Left}: \texttt{sklearn.MLPClassifier} --- a smoothly
+descending training loss reflecting sklearn's internal shuffle + L-BFGS-like
+batch updates, stopping around epoch 160 via \texttt{early\_stopping=True}
+on a 15\% internal validation slice.
+\emph{Right}: hand-rolled PyTorch MLP with explicit train/val split.
+The \textcolor{amber}{val loss} (orange) spikes sharply at epochs 28--30 and
+38--40 (visible peaks ${\approx}0.85$) before the patience-12 stopper
+terminates training at epoch~52.
+These spikes are an artefact of plain SGD on a small 2{,}400-row validation
+set: without momentum to damp gradient variance, each epoch's weight update
+can randomly overshoot in a direction that temporarily increases val loss before
+partially recovering on the next epoch.
+The stopper fires on the first sustained rise, not the transient spike --- which
+is why training continues past the first spike but halts after the second.
+The persistent train--val gap (${\geq}0.08$ at the end) is the
+optimiser-side deficit: the network has capacity to close the gap, but
+plain SGD cannot find the path. See \tabref{tab:test_scores} and
+\texttt{results/tables/table\_per\_class\_mlp\_pt.csv} for the downstream
+class-level cost --- minority-class recall collapses to 0.053 on CT4.}
 \label{fig:nn_epochs}\backto{sec:results:nn}
 \end{figure}
 
