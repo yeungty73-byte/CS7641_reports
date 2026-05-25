@@ -5,7 +5,7 @@
 \documentclass[11pt]{article}
 
 % ── packages ──────────────────────────────────────────────────────────────────
-\usepackage[margin=0.8in]{geometry}
+\usepackage[margin=1in]{geometry}
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{tabularx}
@@ -59,19 +59,19 @@ CS7641 Unsupervised Learning --- Reproducibility Sheet}\\[4pt]
 Timothy Leung \quad tleung37@gatech.edu \quad gtID~904150400}\\[2pt]
 {\color{denimmid}\rule{\linewidth}{0.6pt}}
 
-\section*{1.\ Code and Project Links}
+\section*{1.\ Overleaf project (read-only)}
 \begin{itemize}
   \item \textbf{Overleaf (read-only):}
         \url{https://www.overleaf.com/project/6a123a01f7534325be8dfacf}
   \item \textbf{GitHub (GT Enterprise):}
         \url{https://github.gatech.edu/tleung37/CS7641_ml_report3}
-  \item \textbf{Commit hash:} \texttt{a3f2aaae04927569652be33535786df0fc2f0d1c}
+  \item \textbf{Commit hash:} \texttt{ba52cf89a150c296e954e1b3ddc0e1221734a923}
   \item \textbf{Seed:} \texttt{7641} (course number; propagated everywhere)
 \end{itemize}
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{2.\ Covertype Sample Continuity}
+\section*{2.\ Dataset continuity (UL uses same Covertype sample as SL and OL)}
 
 The working dataset is \textbf{identical} to the SL and OL Reports:
 \begin{itemize}
@@ -90,7 +90,7 @@ The working dataset is \textbf{identical} to the SL and OL Reports:
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{3.\ Environment Setup}
+\section*{3.\ Exact run instructions (standard Linux machine)}
 
 \begin{lstlisting}[language=bash]
 # Python environment
@@ -102,13 +102,12 @@ pip install -r requirements.txt
 #   umap-learn==0.5.12
 
 # R environment (for rsanity/ audit)
-Rscript -e 'install.packages(c("bookdown","yaml","jsonlite","dplyr","ggplot2",
-            "knitr","kableExtra","readr","tibble","tidyr","scales","cluster"))'
+Rscript -e 'install.packages(c("bookdown","yaml","jsonlite","dplyr","ggplot2","knitr","kableExtra","readr","tibble","tidyr","scales","cluster"))'
 \end{lstlisting}
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{3.2\ Commands to Reproduce Every Figure and Table}
+\subsection*{3.2\ Commands to reproduce every figure and table}
 
 \begin{lstlisting}[language=bash]
 # (a) Run the full pipeline end-to-end.
@@ -167,7 +166,7 @@ ICA seed sensitivity sweep: \texttt{[7641, 42, 123, 7, 2024]}.
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{4.\ Clustering Disclosures (Part~1)}
+\section*{4.\ Clustering disclosures (Part~1)}
 
 \begin{center}
 \begin{tabular}{ll}
@@ -191,7 +190,7 @@ Seed              & 7641 \\
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{5.\ DR Disclosures (Part~2)}
+\section*{5.\ DR disclosures (Part~2)}
 
 \begin{center}
 \begin{tabular}{lll}
@@ -222,7 +221,7 @@ the test set.
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{6.\ NN after DR Disclosures (Part~4)}
+\section*{6.\ NN-after-DR disclosures (Part~4)}
 
 \textbf{Best justified recipe from SL and OL Reports:}
 
@@ -258,7 +257,7 @@ Custom implementation in \texttt{src/nn\_after\_dr.py::AdamNoBias}.
 
 {\color{denimmid}\rule{\linewidth}{0.4pt}}
 
-\section*{7.\ R Sanity Check --- Method and Interpretation}
+\section*{7.\ R sanity check --- method and interpretation}
 
 The \texttt{rsanity/sanity\_check\_UL.Rmd} performs three audits:
 
@@ -315,7 +314,7 @@ RP-30    & 30 & 0.6670 & 0.7883 & 0.6339 & 6.9 \\
 \end{tabular}
 \end{center}
 
-\section*{10.\ Hardware and Software Versions}
+\section*{10.\ Hardware and software versions}
 \begin{itemize}[nosep]
   \item OS: Ubuntu / Debian Linux (x86\_64)
   \item CPU: 2-core x86\_64; no GPU used for submission numbers
@@ -330,3 +329,4 @@ RP-30    & 30 & 0.6670 & 0.7883 & 0.6339 & 6.9 \\
 \end{itemize}
 
 \end{document}
+
