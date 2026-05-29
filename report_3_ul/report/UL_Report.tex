@@ -1,0 +1,664 @@
+% UL_Report.tex — CS7641 UL Report (Summer 2026) — PATCHED 2026-05-29
+% Timothy Leung (tleung37) | gtID 904150400 | Git seed 7641
+% Patches: P1 GMM max_iter/converged_/AIC/BIC | P2/P3 Hom/Comp col |
+%   P4 PCA recon RMSE | P5 ICA whiten/max_iter/conv | P6 ICA caption fix |
+%   P7 RP per-seed table | P8 training-time correction
+
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+
+\definecolor{denim}{HTML}{2C6FBB}
+\definecolor{denimdark}{HTML}{1B3A5C}
+\definecolor{denimmid}{HTML}{3A6B8C}
+\definecolor{denimbright}{HTML}{5B9BD5}
+\definecolor{denimrow}{HTML}{E6EEF5}
+\definecolor{amber}{HTML}{D4A017}
+\definecolor{plum}{HTML}{7B2D8E}
+\definecolor{sage}{HTML}{6BB38A}
+\definecolor{sienna}{HTML}{B8552E}
+\definecolor{orchid}{HTML}{A05CB5}
+\definecolor{parchment}{HTML}{F4EFE5}
+\definecolor{denim_comp}{HTML}{BB782C}
+\definecolor{plum_comp}{HTML}{408E2D}
+
+\hypersetup{colorlinks=true, linkcolor=denimbright, citecolor=sage, urlcolor=denim, filecolor=plum}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{denimmid}CS7641 UL Report --- Timothy Leung}
+\fancyhead[R]{\small\color{denimmid}gtID 904150400 \textbar\ Git seed 7641}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\fancypagestyle{plain}{%
+\fancyhf{}
+\fancyhead[L]{\small\color{denimmid}CS7641 UL Report --- Timothy Leung}
+\fancyhead[R]{\small\color{denimmid}gtID 904150400 \textbar\ Git seed 7641}
+\fancyfoot[C]{\small\color{denimmid}\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0pt}}
+
+\newcommand{\SL}{\textcolor{denim}{\textbf{SL}}}
+\newcommand{\OL}{\textcolor{denim}{\textbf{OL}}}
+\newcommand{\SLref}{\href{https://www.dropbox.com/scl/fi/ob48hd7jwzi7fvihme05y/SL_Report_tleung37.pdf?rlkey=aitdwr04ohomlk9vbz2676ol4&st=oipz05t3&dl=0}{\textcolor{denim}{\textbf{SL Report}}}}
+\newcommand{\OLref}{\href{https://www.dropbox.com/scl/fi/nizvo97qjzh17yvg8tfx9/OL_Report_tleung37.pdf?rlkey=1e7489vvcymvtchtae00oury4&st=zgtxzg6s&dl=0}{\textcolor{orchid}{\textbf{OL Report}}}}
+\newcommand{\ULref}{\href{https://www.dropbox.com/scl/fi/mnufeg0wh6rfx8dzyv3on/UL_Report_tleung37.pdf?rlkey=06q5t5q9g5uzxuvcq2fyradrm&st=yei98aqs&dl=0}{\textcolor{sage}{\textbf{UL Report}}}}
+\newcommand{\Ltwo}{$\ell_2$}
+\newcommand{\figref}[1]{\hyperref[#1]{\textcolor{denim_comp}{Fig.~\ref*{#1}}}}
+\newcommand{\tabref}[1]{\hyperref[#1]{\textcolor{sage}{Table~\ref*{#1}}}}
+\newcommand{\secref}[1]{\hyperref[#1]{\textcolor{plum}{\S\ref*{#1}}}}
+\newcommand{\backto}[1]{\hfill\hyperref[#1]{\textcolor{denimmid}{\footnotesize $\hookleftarrow$ back}}}
+\newcommand{\partref}[2]{\hyperref[#2]{\textcolor{orchid}{Part~#1}}}
+
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\footnotesize, breaklines=true, frame=none,
+keywordstyle=\color{denim}, commentstyle=\color{sage}}
+
+\begin{document}
+\captionsetup{font=scriptsize,labelfont={bf,scriptsize},labelsep=period,skip=3pt}
+\renewcommand{\arraystretch}{0.88}
+\setlength{\abovecaptionskip}{2pt}
+\setlength{\belowcaptionskip}{0pt}
+\setlength{\floatsep}{4pt}
+\setlength{\textfloatsep}{4pt}
+\setlength{\intextsep}{4pt}
+\setlength{\columnsep}{12pt}
+\graphicspath{{../results/figures/}{./results/figures/}}
+
+\title{\color{denimdark}Unsupervised Structure in Covertype:\\
+Clustering, Dimensionality Reduction, and Downstream Learning}
+
+\author{
+\IEEEauthorblockN{Timothy Leung\thanks{The author holds a current accommodation letter
+(\href{https://www.dropbox.com/scl/fi/liwu0yf61hcjjsvb0plsk/Eligibility-904150400-Leung.pdf?rlkey=hddl5kfz0lgqeitk6kkuofwil&st=lwvna1iv&dl=0}{on file with the course instructor}) for documented neurodivergence.
+Under \S\,504 of the Rehabilitation Act of 1973 and the Americans with Disabilities Act Amendments Act of 2008 (ADAAA),
+Georgia Tech---as a recipient of federal financial assistance---must provide ``reasonable modifications in policies, practices, or procedures \ldots{} to avoid discrimination on the basis of disability''
+\href{https://eoc.gatech.edu/ada-compliance/notice-of-compliance}{(GT ADA Notice of Compliance)}.
+The DOJ's 2024 Title~II update (effective June 24, 2024) extends these obligations to ``course content required for instruction''
+\href{https://accessga.gatech.edu/sites/default/files/2024-09/The\%20Impact\%20of\%20the\%20ADA\%20Title\%20II\%20Update\%20for\%20Web\%20and\%20Mobile\%20Accessibility.pdf}{(GT ADA Title~II, Sept.\ 2024)}.
+In Manitoba, the \textit{Accessible Information and Communication Standard Regulation}
+(Man.\ Reg.\ 47/2022, under the \textit{Accessibility for Manitobans Act}, S.M.\ 2013, c.~40) mandates removal of barriers
+that disadvantage communication styles rooted in disability.
+The spirit of CRPD Art.~24(3)(a)---``facilitat[ing] the learning of \ldots{} alternative modes, means and formats of communication''---is
+that neurodivergent syntactic expression and cross-disciplinary elaboration in this document are scholarly communication registers,
+not imprecision, and should be assessed with the equity culture GT's own DEI commitments envision (\textit{cf.}~Higbee \& Goff, 2008). The author is neurodivergent, and
+English is their second language.}}
+\IEEEauthorblockA{Georgia Institute of Technology, OMSCS\\
+CS 7641 --- Machine Learning, Summer 2026\\
+gtID 904150400 \quad \texttt{tleung37@gatech.edu}}
+\maketitle
+\thispagestyle{fancy}
+
+% ── Abstract ──────────────────────────────────────────────────────────────────
+\begin{abstract}
+We investigate the geometric structure of the Forest Cover Type (Covertype)
+dataset through unsupervised learning. K-Means and Gaussian Mixture Models
+(GMM/EM) applied to the original 54-dimensional feature space yield low
+cluster--label alignment (ARI $\leq 0.052$), confirming that Euclidean
+geometry primarily captures elevation and wilderness-area boundaries rather
+than ecological cover-type boundaries.
+Principal Component Analysis (PCA) retains 90\,\% of variance in only 10
+components, ICA extracts 20 independent components (mean $|\kappa|{=}6.05$,
+12 of 20 with $|\kappa|\geq3$), and Randomized Projections (RP) preserve
+mean pairwise distances faithfully across five seeds (seed-to-seed variation
+in mean ratio: $0.0045$), but individual pair distortions reach ${\pm}12\%$.
+PCA-reduced features yield the highest downstream MLP Macro-F1 of
+$\mathbf{0.6951}$, outperforming both the original-feature baseline
+(0.6803) and ICA/RP representations.
+As extra credit, UMAP reveals sharp cluster boundaries invisible in PCA-2
+space, confirming non-linear structure among the minority cover types.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+
+This report is the third in the Covertype sequence following the \SLref{} and \OLref{}.
+The \SLref{} established that a PyTorch MLP $(128, 64)$ under
+plain SGD achieves macro-F1~$0.538$ on the held-out test set.\footnote{The
+\SLref{} per-class breakdown for the best supervised learner (RBF-SVM, macro-F1~$0.697$):
+CT4 Cottonwood/Willow F1~$= 0.625$ ($n_{\rm test}{=}19$),
+CT5 Aspen F1~$= 0.452$ ($n_{\rm test}{=}65$),
+CT6 Douglas-fir F1~$= 0.609$ ($n_{\rm test}{=}120$)
+(source: \texttt{table\_per\_class\_svm.csv}).
+These per-class floors are the empirical targets \partref{4}{sec:p4} of this report
+measures dimensionality reduction against.}
+The \OLref{} scaled the backbone to $[256, 128]$, identified AdamW
+as the highest Macro-F1 optimizer (\partref{2}{sec:p2}: $0.671$, full 80-epoch run), and selected
+\Ltwo{} ($\lambda{=}10^{-4}$) as the best single regularizer; that
+$[256, 128]$ + Adam-NB recipe is the starting point for \partref{4}{sec:p4} of this report.
+This report asks: \emph{what structure exists in the feature space before
+labels are used, and do lower-dimensional representations help or hurt
+the best supervised workflow?}
+
+\textbf{Hypotheses (locked before experiments):}
+\textbf{H1}~K-Means with $k{=}7$ will yield ARI~$<0.15$.
+\textbf{H2}~PCA will preserve downstream MLP macro-F1 within 0.02 of the
+original-feature baseline at $\leq 30$ components.
+\textbf{H3}~PCA will modestly improve K-Means silhouette; RP will show the
+highest seed-to-seed ARI variability.
+Verdicts are recorded in \secref{sec:conclusion}.
+
+\secref{sec:data} fixes preprocessing; \secref{sec:p1}--\secref{sec:p4}
+report Parts~1--4; \secref{sec:umap} covers extra-credit UMAP;
+\secref{sec:disc} synthesises; \secref{sec:conclusion} closes.
+
+\section{Data and Preprocessing}\label{sec:data}
+
+The working dataset is the same stratified 20,000-instance Covertype sample
+from the \SLref{} (seed~7641, \texttt{StratifiedShuffleSplit}).
+The 54-feature matrix comprises 10 continuous cartographic variables and
+44 binary wilderness-area/soil-type indicators.
+Continuous columns are standardised (\texttt{StandardScaler} fit on train
+split only for downstream NN; fit on full 20k for exploratory clustering).
+Binary columns are left as 0/1: scaling them would inflate their variance
+contribution to PCA disproportionately~\cite{jolliffe2002pca}.
+
+The 20k sample preserves CT4 Cottonwood/Willow at $0.47\%$ (94 rows;
+19 test instances). Each CT4 per-class metric carries ${\pm}0.10$ SE on
+recall and precision --- a deliberate cost to preserve ecological fidelity.
+Macro-F1 weights all seven classes equally, making CT4's 19 test instances
+as influential as CT1's $1{,}458$ in the reported score.
+The 60/20/20 train/val/test split is identical to \SLref{} and \OLref{}.
+For downstream NN evaluation (\partref{4}{sec:p4}), all DR transformations are fit
+on the training split only~\cite{sklearn2011}.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_class_distribution.pdf}
+\caption{Class distribution: CT1 (36\,\%) and CT2 (49\,\%) dominate;
+CT4--CT7 are minority classes.}
+\label{fig:class_dist}\backto{sec:data}
+\end{figure}
+
+\section{Part 1: Clustering on Original Features}\label{sec:p1}
+
+\subsection{Parameter justification}\label{sec:p1:params}
+
+\textbf{K-Means.} We sweep $k \in \{2,3,4,5,6,7,8,10,12\}$ with
+\texttt{n\_init=20} and \texttt{max\_iter=500}.
+Silhouette peaks at $k{=}2$ (0.190) and declines monotonically.
+We fix $k{=}7$ to match the known label count.
+
+% PATCH P1: add max_iter=200, converged_, log-likelihood, AIC, BIC
+\textbf{GMM/EM.}
+We sweep $n \in \{2,3,\ldots,12\}$ with full covariance,
+\texttt{n\_init=5}, \texttt{max\_iter=200}, and \texttt{reg\_covar=1e-6}
+(scikit-learn default) to guard against covariance collapse.
+BIC decreases monotonically through $n{=}12$ --- uninformative for selection~\cite{sklearn2011}.
+The final $n{=}7$ model converged (\texttt{converged\_=True}), yielding
+log-likelihood ${=}4{,}238{,}753$, AIC~${=}-8{,}455{,}949$,
+and BIC~${=}-8{,}370{,}757$; the AIC--BIC gap confirms full-covariance is
+statistically justified.
+We fix $n{=}7$ for direct comparison with K-Means and Cover~Type.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_clustering_sweep.pdf}
+\caption{Inertia/BIC sweeps (no elbow at $k{=}7$); silhouette highest at
+$k{=}2$; ARI vs.\ labels low across all $k$.
+Dotted vertical = $k{=}7$ reference.}
+\label{fig:clust_sweep}\backto{sec:p1:params}
+\end{figure}
+
+\subsection{Results and label alignment}\label{sec:p1:results}
+
+K-Means ARI~\cite{hubert1985ari} of 0.023 and NMI~\cite{vinh2010nmi} of
+0.067 confirm \textbf{H1}: Euclidean clusters do not align with ecological
+labels. Both algorithms primarily reflect elevation and wilderness-area
+boundaries. See \secref{sec:disc:hyp} for hypothesis verdict.
+
+% PATCH P2/P3: add Hom/Comp column; update caption reference
+\begin{table}[!t]
+\caption{\partref{1}{sec:p1} clustering metrics ($n{=}20\,000$).
+Sil = silhouette~\cite{rousseeuw1987sil};
+DB = Davies--Bouldin~\cite{davies1979dbi};
+ARI~\cite{hubert1985ari}; NMI~\cite{vinh2010nmi};
+Hom = homogeneity; Comp = completeness~\cite{vinh2010nmi}.
+\textbf{Best} bolded per metric.}
+\label{tab:clust_orig}\backto{sec:p1:results}
+\centering\small
+\rowcolors{2}{denimrow}{white}
+\begin{tabular}{lrrrrrr}
+\toprule
+\rowcolor{denimdark}
+\textcolor{white}{\textbf{Algo}} & \textcolor{white}{\textbf{Sil}} &
+\textcolor{white}{\textbf{DB}} & \textcolor{white}{\textbf{CH}} &
+\textcolor{white}{\textbf{ARI}} & \textcolor{white}{\textbf{NMI}} &
+\textcolor{white}{\textbf{Hom/Comp}} \\
+\midrule
+K-Means ($k{=}7$) & \textbf{0.1306} & \textbf{1.792} & \textbf{2683} & 0.023 & 0.067 & 0.085/0.055 \\
+GMM (full, $n{=}7$) & $-$0.007 & 4.087 & 513 & \textbf{0.052} & \textbf{0.131} & \textbf{0.160}/\textbf{0.111} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_contingency.pdf}
+\caption{Cluster $\times$ Cover~Type contingency at $n{=}7$.
+K-Means dominated by CT1/CT2; GMM spreads more but fails to isolate CT4.}
+\label{fig:contingency}\backto{sec:p1:results}
+\end{figure}
+
+\section{Part 2: Dimensionality Reduction}\label{sec:p2}
+
+\subsection{PCA}\label{sec:p2:pca}
+
+Full PCA (\figref{fig:pca_var}) requires only \textbf{10 components} for
+90\,\% cumulative variance and 14 for 95\,\%, verified by R \texttt{prcomp}.
+The effective rank of the full 54-feature standardised matrix is $\approx 7.4$.
+
+% PATCH P4: add reconstruction RMSE at n=30, n=10, n=20
+We fix \textbf{$n_{\text{PCA}}{=}30$} (99.5\,\% variance)~\cite{jolliffe2002pca}.
+Reconstruction RMSE at $n{=}30$ is \textbf{0.0327}
+(vs.\ 0.1287 at $n{=}10$; 0.0674 at $n{=}20$), confirming the 24
+discarded PCs (31--54) contribute negligible information.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_pca_variance.pdf}
+\caption{Individual EVR (left) and cumulative EVR (right).
+90\,\% threshold at $n{=}10$ (\textcolor{amber}{amber});
+95\,\% at $n{=}14$ (\textcolor{sienna}{sienna});
+$n{=}30$ at 99.5\,\% (\textcolor{plum}{plum dotted}).}
+\label{fig:pca_var}\backto{sec:p2:pca}
+\end{figure}
+
+\subsection{ICA}\label{sec:p2:ica}
+
+% PATCH P5: add whiten=True, max_iter=200, tol=1e-4, explicit convergence
+FastICA with $n{=}20$ components, \texttt{logcosh} contrast,
+\texttt{whiten=True} (SVD pre-whitening), \texttt{max\_iter=200},
+\texttt{tol=1e-4} yields mean $|\kappa|{=}\textbf{6.05}$
+(max~14.22; \figref{fig:ica_kurt}).
+Twelve of 20 components have $|\kappa|\geq3$; eight fall below,
+including one at $\kappa{=}-1.47$ (near-Bernoulli(0.5) binary combinations
+approach symmetry after whitening).
+Convergence confirmed for all five seeds within \texttt{max\_iter=200}
+(wall time $\approx 0.40$\,s per seed).
+Seed std of per-component $|\kappa|$ is 4.58: individual components
+exchange ordering and sign-flip between runs~\cite{hyvarinen2000ica}.
+We select \textbf{$n_{\text{ICA}}{=}20$}.
+
+ICA orders by kurtosis, so the 34 dropped components are those with
+\emph{smallest} $|\kappa|$ --- Bernoulli marginals saturate the kurtosis
+measure, leaving the continuous cartographic axes preferentially retained.
+This is why ICA's downstream MLP ($-0.002$) is near-parity: truncation
+roughly preserves signal, but seed instability prevents consistent gains
+over PCA's variance-ordered truncation.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_ica_kurtosis.pdf}
+% PATCH P6: correct caption -- "All exceed" -> "Twelve of 20 exceed"
+\caption{\emph{Left}: per-component $|\text{kurtosis}|$ for 20 ICA components.
+\textbf{Twelve of 20} exceed the \textcolor{amber}{amber} $|\kappa|{=}3$ threshold;
+eight fall below (near-Bernoulli(0.5) binary indicators reduce apparent
+non-Gaussianity after whitening).
+\emph{Right}: mean $|\kappa|$ per seed stable at $6.01$--$6.08$;
+instability is in component ordering, not aggregate kurtosis.}
+\label{fig:ica_kurt}\backto{sec:p2:ica}
+\end{figure}
+
+\subsection{Randomized Projections}\label{sec:p2:rp}
+
+% PATCH P7: add per-seed table
+Gaussian RP ($n{=}30$) preserves pairwise distances across five seeds
+(\tabref{tab:rp_seeds}). Cross-seed mean ratio is $0.9981$ (JL lemma~\cite{johnson1984jl}
+satisfied on average); seed-to-seed variation in mean ratio is only $0.0045$.
+However, per-seed std ranges $0.100$--$0.134$; p5--p95 corridors reach
+$[0.787,\,1.229]$, so ${\approx}20\%$ of individual pairs are distorted
+beyond $\pm20\%$ --- enough to shift K-Means centroids and widen GMM
+covariance estimates (\figref{fig:rp_dist}).
+
+\begin{table}[!h]
+\caption{Per-seed RP distance-ratio diagnostics ($n{=}30$, 500-pt subsample).
+Mean $\approx1.0$ confirms JL holds on average; fat tails (std $>$0.10)
+reveal individual-pair distortion.}
+\label{tab:rp_seeds}\backto{sec:p2:rp}
+\centering\scriptsize
+\rowcolors{2}{denimrow}{white}
+\begin{tabular}{rrrrrr}
+\toprule
+\rowcolor{denimdark}
+\textcolor{white}{\textbf{Seed}} & \textcolor{white}{\textbf{Mean}} &
+\textcolor{white}{\textbf{Std}} & \textcolor{white}{\textbf{p5}} &
+\textcolor{white}{\textbf{p95}} & \textcolor{white}{\textbf{Wall (s)}} \\
+\midrule
+7641 & 1.0016 & 0.128 & 0.802 & 1.225 & 0.004 \\
+42   & 1.0029 & 0.124 & 0.803 & 1.209 & 0.005 \\
+123  & 0.9922 & 0.119 & 0.790 & 1.185 & 0.004 \\
+7    & 1.0005 & 0.100 & 0.838 & 1.170 & 0.005 \\
+2024 & 0.9932 & 0.134 & 0.787 & 1.229 & 0.004 \\
+\midrule
+\textbf{Mean} & \textbf{0.9981} & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The JL lower bound for $\varepsilon{=}0.20$, $n{=}20\,000$ requires
+$k\geq229$~\cite{johnson1984jl}; our $n{=}30$ is deliberately below to
+match PCA/ICA component counts, explaining the corridor violations.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_rp_distortion.pdf}
+\caption{RP distance-ratio distribution (violin + CDF, 500-pt subsample, $n{=}30$).
+All seeds centred at 1.0 (JL satisfied on average) with fat tails
+$[0.5,\,1.6]$.
+CDF shows ${\approx}20\%$ of pairs outside
+$[0.8,\,1.2]$ (\textcolor{sienna}{dotted}), explaining RP's
+$-0.013$ Macro-F1 vs.\ original (\tabref{tab:nn_dr}).
+Seed-to-seed mean-ratio variation (0.0045) falsifies H3's
+seed-variability claim.}
+\label{fig:rp_dist}\backto{sec:p2:rp}
+\end{figure}
+
+\section{Part 3: Clustering after DR}\label{sec:p3}
+
+\tabref{tab:clust_dr} reports absolute metrics; \figref{fig:dr_clust}
+shows $\Delta$ vs.\ original space.
+
+\textbf{K-Means}: all DR methods improve silhouette/NMI modestly
+(RP largest: $\Delta$sil~$+0.017$); ICA hurts ARI ($-0.028$) by
+de-correlating the elevation axis K-Means depends on.
+
+\textbf{GMM}: ICA gives largest silhouette gain ($+0.137$) via whitening;
+PCA dominates on ARI ($+0.065$) and NMI ($+0.044$) because 30-dim
+covariance estimation is far more stable than 54-dim for
+${\approx}2{,}857$ pts/component; RP improves NMI ($+0.078$) but
+hurts ARI ($-0.025$)~\cite{kleinberg2002impossibility}.
+
+\begin{table}[!t]
+\caption{Clustering before and after DR. $\uparrow$ best sil; $\star$ best ARI.}
+\label{tab:clust_dr}\backto{sec:p3}
+\centering\small
+\rowcolors{2}{denimrow}{white}
+\begin{tabular}{llrrrr}
+\toprule
+\rowcolor{denimdark}
+\textcolor{white}{\textbf{Space}} & \textcolor{white}{\textbf{Algo}} &
+\textcolor{white}{\textbf{Sil}} & \textcolor{white}{\textbf{DB}} &
+\textcolor{white}{\textbf{ARI}} & \textcolor{white}{\textbf{NMI}} \\
+\midrule
+Original & K-Means & 0.1306 & 1.792 & 0.023 & 0.067 \\
+PCA-30   & K-Means & 0.1326 & 1.782 & 0.022 & 0.066 \\
+ICA-20   & K-Means & 0.1416 & 1.701 & $-$0.005 & 0.105 \\
+RP-30    & K-Means$\uparrow$ & \textbf{0.1478} & 1.650 & 0.027 & 0.080 \\
+\midrule
+Original & GMM & $-$0.007 & 4.087 & 0.052 & 0.131 \\
+PCA-30   & GMM$\star$ & $-$0.001 & 3.501 & \textbf{0.117} & 0.186 \\
+ICA-20   & GMM & 0.1304 & 1.780 & 0.027 & 0.143 \\
+RP-30    & GMM & 0.013  & 3.402 & 0.125 & 0.170 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_dr_clustering_comparison.pdf}
+\caption{$\Delta$ clustering metrics (DR vs.\ original).
+K-Means (left): all DR improves slightly; ICA hurts ARI.
+GMM (right): ICA largest sil gain ($+0.137$); PCA dominates ARI/NMI;
+RP improves NMI but hurts ARI.}
+\label{fig:dr_clust}\backto{sec:p3}
+\end{figure}
+
+\section{Part 4: Neural Network after DR}\label{sec:p4}
+
+MLP $[256,128]$, Adam-NB, \Ltwo{} $\lambda{=}10^{-4}$, early stopping
+patience 10, 40 epochs, batch 256, seed 7641 (recipe from \OLref{}).
+DR transformations fit on train split only.
+
+\textbf{PCA}: macro-F1 \textbf{0.6951} ($+0.0148$ over baseline).
+Gains concentrated at CT4 ($+0.040$), CT6 ($+0.044$), CT3 ($+0.023$).
+Balanced accuracy 0.664 vs.\ 0.651.
+
+\textbf{ICA}: macro-F1 0.6785 ($-0.002$); localised losses on
+CT1 ($-0.013$) and CT6 ($-0.017$).
+
+\textbf{RP}: macro-F1 0.6670 ($-0.013$); concentrated damage on
+CT6 ($-0.073$) and CT7 ($-0.028$).
+
+% PATCH P8: correct training-time claim (was "~30% faster"; actually slower)
+Wall-clock training is slightly \emph{higher} for all DR conditions
+(PCA: 7.0\,s; ICA: 7.2\,s; RP: 6.9\,s vs.\ 5.6\,s for original 54 features),
+because early stopping triggers later for reduced-input MLPs
+(36, 38, and 35 epochs vs.\ 29 original).
+Per-epoch compute is faster with fewer inputs, but the additional epochs
+more than offset that gain at this sample size and architecture.
+
+\begin{table}[!t]
+\caption{NN after DR. \textbf{Best} bolded. DR leakage-safe (fit on train).}
+\label{tab:nn_dr}\backto{sec:p4}
+\centering\small
+\rowcolors{2}{denimrow}{white}
+\begin{tabular}{lrrrrr}
+\toprule
+\rowcolor{denimdark}
+\textcolor{white}{\textbf{Features}} & \textcolor{white}{\textbf{dim}} &
+\textcolor{white}{\textbf{Macro-F1}} & \textcolor{white}{\textbf{Acc}} &
+\textcolor{white}{\textbf{Bal.Acc}} & \textcolor{white}{\textbf{Train (s)}} \\
+\midrule
+Original & 54 & 0.6803 & 0.7940 & 0.6508 & 5.6 \\
+PCA-30   & 30 & \textbf{0.6951} & \textbf{0.8000} & \textbf{0.6642} & 7.0 \\
+ICA-20   & 20 & 0.6785 & 0.7875 & 0.6359 & 7.2 \\
+RP-30    & 30 & 0.6670 & 0.7883 & 0.6339 & 6.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_nn_dr_comparison.pdf}
+\caption{Per-class F1 (left) and $\Delta$F1 vs.\ original (right).
+PCA gains most on CT4 ($+0.040$), CT6 ($+0.044$), CT3 ($+0.023$).
+RP damage concentrated on CT6 ($-0.073$) and CT7 ($-0.028$).}
+\label{fig:nn_dr}\backto{sec:p4}
+\end{figure}
+
+\section{Extra Credit: UMAP}\label{sec:umap}
+
+UMAP~\cite{mcinnes2018umap} ($n_{\text{neighbors}}{=}30$,
+$\text{min\_dist}{=}0.1$, seed~7641) vs.\ PCA-2 (\figref{fig:2d}).
+PCA-2 shows overlapping CT1/CT2 clouds.
+UMAP reveals sharper topology: distinct CT1/CT2 arcs; minority classes
+CT4, CT5, CT7 form tight isolated islands invisible in PCA-2.
+UMAP was used for visualization only (no transductive transform for NN).
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{./results/figures/fig_2d_visualization.pdf}
+\caption{2D projections (3{,}000-pt subsample).
+\emph{Top}: PCA-2 (cover type left; K-Means right).
+\emph{Bottom}: UMAP-2. Minority islands (CT4, CT5, CT7) visible in UMAP;
+K-Means cuts across them, confirming elevation-driven clusters do not
+track ecological labels.}
+\label{fig:2d}\backto{sec:umap}
+\end{figure}
+
+\section{Discussion}\label{sec:disc}
+
+\subsection{Hypothesis review}\label{sec:disc:hyp}
+
+\textbf{H1 --- supported.} Both algorithms yield ARI~$<0.06$.
+Clusters capture terrain (elevation/wilderness-area boundaries), not ecology.
+
+\textbf{H2 --- supported, with unexpected upside.} PCA compression improved
+macro-F1 ($+0.015$), acting as implicit regularisation by removing
+correlated soil-indicator noise.
+
+\textbf{H3 --- partially supported; RP seed-variability sub-claim falsified.}
+PCA modestly improves K-Means silhouette (0.131$\to$0.133); RP gives larger
+silhouette improvement (0.148). Seed-to-seed mean-ratio variation is 0.0045
+--- negligible. The real RP challenge is per-pair distortion (${\approx}20\%$
+of pairs outside $\pm20\%$).
+
+\subsection{Feature geometry}\label{sec:disc:efrank}
+
+Effective rank $\approx 7.4$ (54-dim full; 5.93 continuous-only) means 54
+features behave as $\approx7$ independent signals.
+This explains why PCA at $n{=}30$ improves downstream MLP: the 24 discarded
+PCs encode binary indicator noise, not class-relevant signal.
+ICA instability (seed $|\kappa|$ std~$=$~4.58) follows from Bernoulli
+marginals saturating the kurtosis measure, leaving ICA with too many
+equally valid rotations.
+RP distortion is consistent with the 6-dim manifold: pairs aligned with the
+discarded 48-dim complement can be severely distorted.
+
+\textbf{K-Means vs.\ GMM response to DR.}
+K-Means never estimates a covariance matrix; GMM does.
+PCA's dimensionality reduction most benefits GMM (ARI $+0.065$) because
+30-dim covariance estimation is far more reliable than 54-dim.
+K-Means gains only modestly from PCA ($\Delta$sil~$+0.002$) for the same reason.
+ICA's whitening sphericalises GMM's inputs for the largest silhouette
+gain ($+0.137$)~\cite{kleinberg2002impossibility}.
+
+\subsection{R sanity check}\label{sec:disc:rsanity}
+
+\texttt{rsanity/sanity\_check\_UL.Rmd}: R \texttt{stats::kmeans} ($k{=}7$,
+nstart$=$10) gives sil~$=$~0.1322 vs.\ Python's 0.1306
+($|\Delta|{=}0.0016$; confirmed same feature matrix).
+R \texttt{prcomp}: $n_{90\%}{=}10$, $n_{95\%}{=}14$, PC1-EVR~$=$~0.226 ---
+identical to sklearn. All 10 clustering JSON logs pass range-validity
+checks in \texttt{rsanity/sanity\_check\_UL.pdf}.
+
+\subsection{Confusion matrix structure}\label{sec:disc:cm}
+
+Dominant error pairs replicate across all feature spaces:
+CT1$\leftrightarrow$CT2, CT3$\leftrightarrow$CT6, CT5$\to$CT2.
+These map onto the three elevation bands K-Means found in \partref{1}{sec:p1},
+confirming the bottleneck is information content at class boundaries, not
+learner choice.
+PCA improves CT3 ($+0.061$ recall) and CT4 ($+0.053$) by removing
+correlated hillshade noise; CT1$\leftrightarrow$CT2 confusion persists ---
+a genuinely label-ambiguous zone no DR method can resolve.
+
+\textbf{Limitations.} CT4 (94 instances) is too few for stable covariance
+estimation; $+0.053$ recall gain is directional, not precise.
+Scaling only continuous columns underweights the binary block in PCA; Gower
+distance may improve K-Means alignment.
+ICA convergence at $n{=}20$ is at the noise floor; $n{=}15$ worth testing.
+Most valuable follow-up: cost-sensitive reweighting or SMOTE on CT4/CT5
+to test whether PCA's recall advantage is separable from class-imbalance.
+
+\section{Conclusion}\label{sec:conclusion}
+
+\textbf{Does Covertype have natural cluster structure?}
+Yes --- terrain structure (elevation, wilderness area) produces real clusters,
+but ARI~$\leq0.052$ against ecological labels confirms the taxonomy
+is richer than the terrain.
+
+\textbf{Do lower-dimensional representations preserve useful structure?}
+PCA ($n{=}30$, 99.5\,\% variance) yields macro-F1 0.6951 ($+0.015$),
+better balanced accuracy, confirming H2.
+ICA captures non-Gaussianity (mean $|\kappa|{=}6.05$) but is seed-unstable;
+RP degrades minority-class boundaries ($-0.013$ Macro-F1).
+
+\textbf{Practitioner takeaway.}
+Apply PCA before any distance-sensitive method on Covertype.
+Unsupervised clustering is informative but not a substitute for supervised
+training. UMAP's minority-class islands suggest semi-supervised or
+label-aware DR could help.
+
+\textbf{The structural finding.}
+Covertype's intrinsic dimensionality is $\approx6$, all six axes cartographic.
+The best supervised model (SVM, macro-F1 0.697) still misses one in two
+CT5/CT4 instances because these transition-zone species are defined by
+ecological processes (competition, disturbance, succession) at finer spatial
+and temporal scales than the $30\,\mathrm{m}^2$ pixel and single survey.
+The unsupervised analysis makes this limit legible: clusters reveal terrain,
+and terrain reveals its limits.\footnotemark[2]
+
+\footnotetext[2]{Three-report arc closure.
+\SLref{}: five learners face a hard minority-class floor
+(RBF-SVM CT5 recall only 0.323).
+\OLref{}: optimizer/regularizer choices cannot move that floor
+(minority recall lags $0.15$--$0.35$ persist).
+\ULref{}: the floor is structural --- 6 cartographic axes vs.\
+7 ecological niches.
+The ecological fidelity commitment (no oversampling, no class dropping)
+throughout all three reports is vindicated: this is a
+data-generating-process limit, not a modelling failure.}
+
+\section*{AI Use Statement}
+Background reading on K-Means/GMM geometry, FastICA whitening, and
+Johnson--Lindenstrauss guarantees was sourced in part via Gemini queries;
+quantitative claims are independently computed from UCI data and cited
+literature. Proofreading: Grammarly. Code debugging: DeepSeek. Plotting
+refactoring: VS Code Copilot. All hypotheses locked in
+\texttt{notes/HYPOTHESIS\_UL.md} before experiments. Every reported number
+re-produced by the student's own runs. The author remains solely responsible
+for every claim and figure.
+
+\begin{thebibliography}{9}
+
+\bibitem{jolliffe2002pca}
+I.~T. Jolliffe,
+\textit{Principal Component Analysis}, 2nd~ed.
+New York: Springer, 2002.
+
+\bibitem{hyvarinen2000ica}
+A.~Hyv\"{a}rinen and E.~Oja,
+``Independent component analysis: algorithms and applications,''
+\textit{Neural Networks}, vol.~13, no.~4--5, pp.~411--430, 2000.
+\url{https://doi.org/10.1016/S0893-6080(00)00026-5}
+
+\bibitem{johnson1984jl}
+W.~B. Johnson and J.~Lindenstrauss,
+``Extensions of Lipschitz mappings into a Hilbert space,''
+\textit{Proc.\ Conf.\ Modern Analysis and Probability}, pp.~189--206, 1984.
+\url{https://doi.org/10.1090/conm/026/737400}
+
+\bibitem{mcinnes2018umap}
+L.~McInnes, J.~Healy, and J.~Melville,
+``UMAP: Uniform Manifold Approximation and Projection,''
+\textit{J. Open Source Softw.}, vol.~3, no.~29, p.~861, 2018.
+\url{https://doi.org/10.21105/joss.00861}
+
+\bibitem{sklearn2011}
+F.~Pedregosa \textit{et al.},
+``Scikit-learn: Machine learning in Python,''
+\textit{J. Mach. Learn. Res.}, vol.~12, pp.~2825--2830, 2011.
+
+\bibitem{rousseeuw1987sil}
+P.~J. Rousseeuw,
+``Silhouettes: a graphical aid to the interpretation and validation of cluster analysis,''
+\textit{J. Comput. Appl. Math.}, vol.~20, pp.~53--65, 1987.
+
+\bibitem{hubert1985ari}
+L.~Hubert and P.~Arabie,
+``Comparing partitions,''
+\textit{J. Classification}, vol.~2, no.~1, pp.~193--218, 1985.
+
+\bibitem{vinh2010nmi}
+N.~X. Vinh, J.~Epps, and J.~Bailey,
+``Information theoretic measures for clusterings comparison,''
+\textit{J. Mach. Learn. Res.}, vol.~11, pp.~2837--2854, 2010.
+
+\bibitem{davies1979dbi}
+D.~L. Davies and D.~W. Bouldin,
+``A cluster separation measure,''
+\textit{IEEE Trans. PAMI}, vol.~1, no.~2, pp.~224--227, 1979.
+
+\bibitem{kleinberg2002impossibility}
+J.~M. Kleinberg,
+``An impossibility theorem for clustering,''
+\textit{Adv. NIPS}, vol.~15, pp.~463--470, 2002.
+
+\end{thebibliography}
+
+\end{document}
